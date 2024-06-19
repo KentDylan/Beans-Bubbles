@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "968622951905",
+    "project_id": "beansandbubbles-46ba1",
+    "storage_bucket": "beansandbubbles-46ba1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:968622951905:android:910f2c681c2f1148d456a0",
+        "android_client_info": {
+          "package_name": "com.example.product_listtt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1KSiUtaiaYR0s2tPV3h4kQtvvoKzhd4U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
