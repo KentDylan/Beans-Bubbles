@@ -1,4 +1,4 @@
-import 'package:Beans_and_Bubbles/screens/login_page.dart';
+import 'package:BeaBubs/screens/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../screens/profile_page.dart';

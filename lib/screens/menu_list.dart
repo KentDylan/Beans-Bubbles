@@ -1,3 +1,5 @@
+// menu_list.dart
+
 import 'package:flutter/material.dart';
 import '../widgets/menu_card.dart';
 
@@ -8,8 +10,7 @@ class MenuList extends StatefulWidget {
   State<MenuList> createState() => _MenuListState();
 }
 
-class _MenuListState extends State<MenuList>
-    with SingleTickerProviderStateMixin {
+class _MenuListState extends State<MenuList> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   final List<String> categories = ['Donut', 'Pastry', 'Drinks'];

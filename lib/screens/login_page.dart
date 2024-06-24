@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:Beans_and_Bubbles/widgets/login_widget.dart'; // Assuming this is your login widget
+import 'package:BeaBubs/widgets/login_widget.dart'; // Assuming this is your login widget
 import '../auth/auth_service.dart';
 import '../screens/profile_page.dart';
 
@@ -41,47 +41,47 @@ class LoginPage extends StatelessWidget {
           },
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding:
-                      EdgeInsets.fromLTRB(40, isSmallScreen ? 50 : 70, 0, 0),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Beans & Bubbles',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isSmallScreen ? 25 : 35,
-                      fontFamily: 'Morgenlicht',
-                    ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(height: isSmallScreen ? 50 : 100), // Space added to move the white box up
+            Padding(
+              padding: EdgeInsets.fromLTRB(40, isSmallScreen ? 50 : 70, 0, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Beans & Bubbles',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isSmallScreen ? 25 : 35,
+                    fontFamily: 'Morgenlicht',
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.fromLTRB(40, 0, 0, 0),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Clean Car, Fresh Brew!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isSmallScreen ? 15 : 18,
-                      fontFamily: 'Morgenlicht',
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          LoginWidget(
-            onLogin: (email, password) {
-              _handleLogin(email, password, context);
-            },
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(40, 0, 0, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Clean Car, Fresh Brew!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isSmallScreen ? 15 : 18,
+                    fontFamily: 'Morgenlicht',
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            LoginWidget(
+              onLogin: (email, password) {
+                _handleLogin(email, password, context);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

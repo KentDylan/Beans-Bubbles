@@ -7,13 +7,13 @@ class SubTotalWidget extends StatelessWidget {
     required this.totalPrice,
   });
 
-  final ValueNotifier<int?> totalPrice;
+  final ValueNotifier<double?> totalPrice;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ValueListenableBuilder<int?>(
+        ValueListenableBuilder<double?>(
           valueListenable: totalPrice,
           builder: (context, val, child) {
             return ReusableWidget(

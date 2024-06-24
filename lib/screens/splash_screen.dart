@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Beans_and_Bubbles/main_page.dart';
+import 'package:BeaBubs/main_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -44,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     width: 200,
                     decoration: BoxDecoration(
                       image: DecorationImage(
-                        image: AssetImage('../assets/icon/logo_tanpa_nama.png'),
+                        image: AssetImage('assets/icon/logo_tanpa_nama.png'),
                         fit: BoxFit.contain,
                       ),
                     ),

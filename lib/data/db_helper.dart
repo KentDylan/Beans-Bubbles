@@ -6,6 +6,7 @@ import 'package:path/path.dart';
 import 'dart:io' as io;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/menu_model.dart';
 
 class DBHelper {
   static Database? _database;
@@ -107,88 +108,63 @@ class DBHelper {
     await dbClient!.delete('cart');
   }
 
-  Future<Cart> insertOrUpdate(Cart cart) async {
-    var dbClient = await database;
-    final productId = cart.productId;
+  // Future<Cart> insertOrUpdate(Cart cart) async {
+  //   var dbClient = await database;
+  //   final productId = cart.productId;
 
-    final existingCartItem = await dbClient!.query(
-      'cart',
-      where: 'productId = ?',
-      whereArgs: [productId],
-    );
+  //   final existingCartItem = await dbClient!.query(
+  //     'cart',
+  //     where: 'productId = ?',
+  //     whereArgs: [productId],
+  //   );
 
-    if (existingCartItem.isNotEmpty) {
-      final currentQuantity = existingCartItem[0]['quantity'] as int;
-      await dbClient.update(
-        'cart',
-        {
-          'quantity': currentQuantity + cart.quantity!.value,
-        },
-        where: 'productId = ?',
-        whereArgs: [productId],
-      );
-    } else {
-      await dbClient.insert('cart', cart.toMap());
-    }
+  //   if (existingCartItem.isNotEmpty) {
+  //     final currentQuantity = existingCartItem[0]['quantity'] as int;
+  //     await dbClient.update(
+  //       'cart',
+  //       {
+  //         'quantity': currentQuantity + cart.quantity!.value,
+  //       },
+  //       where: 'productId = ?',
+  //       whereArgs: [productId],
+  //     );
+  //   } else {
+  //     await dbClient.insert('cart', cart.toMap());
+  //   }
 
-    return cart;
-  }
+  //   return cart;
+  // }
 
-  Future<List<Cart>> getCartList() async {
-    var dbClient = await database;
-    if (dbClient != null) {
-      final List<Map<String, Object?>> queryResult =
-          await dbClient.query('cart');
-      return queryResult.map((result) => Cart.fromMap(result)).toList();
-    } else {
-      return [];
-    }
-  }
+  // Future<List<Cart>> getCartList() async {
+  //   var dbClient = await database;
+  //   if (dbClient != null) {
+  //     final List<Map<String, Object?>> queryResult =
+  //         await dbClient.query('cart');
+  //     return queryResult.map((result) => Cart.fromMap(result)).toList();
+  //   } else {
+  //     return [];
+  //   }
+  // }
 
-  Future<int> updateQuantity(Cart cart) async {
-    var dbClient = await database;
-    return await dbClient!.update('cart', cart.quantityMap(),
-        where: "productId = ?", whereArgs: [cart.productId]);
-  }
+  // Future<int> updateQuantity(Cart cart) async {
+  //   var dbClient = await database;
+  //   return await dbClient!.update('cart', cart.quantityMap(),
+  //       where: "productId = ?", whereArgs: [cart.productId]);
+  // }
 
   Future<int> deleteCartItem(int id) async {
     var dbClient = await database;
     return await dbClient!.delete('cart', where: 'id = ?', whereArgs: [id]);
   }
 
-// Future<bool> isEmailAvailable(String email) async {
-//   var dbClient = await database;
-//   final List<Map<String, Object?>> queryResult = await dbClient!.query(
-//     'users',
-//     where: 'email = ?',
-//     whereArgs: [email],
-//   );
-//   return queryResult.isEmpty;
-// }
-
-// Future<int> registerUser(User user) async {
-//   if (await isEmailAvailable(user.email)) {
-//     var dbClient = await database;
-//     return await dbClient!.insert('users', user.toMap());
-//   } else {
-//     // Handle duplicate email error (show a message to the user)
-//     return 0; // Or any value indicating failure
-//   }
-// }
-
-
-  // Tambahkan metode untuk login pengguna
-  // Future<User?> loginUser(String email, String password) async {
-  //   var dbClient = await database;
-  //   final List<Map<String, Object?>> queryResult = await dbClient!.query(
-  //     'users',
-  //     where: 'email = ? AND password = ?',
-  //     whereArgs: [email, password],
-  //   );
-  //   if (queryResult.isNotEmpty) {
-  //     return User.fromMap(queryResult.first);
-  //   } else {
-  //     return null;
-  //   }
-  // }
+  // Fetch product details by product ID
+  Future<MenuModel?> getProductById(int productId) async {
+    try {
+      // Assuming you have a way to fetch a product from listMenu by ID
+      return listMenu.firstWhere((product) => product.id == productId);
+    } catch (e) {
+      print('Error fetching product: $e');
+      return null;
+    }
+  }
 }

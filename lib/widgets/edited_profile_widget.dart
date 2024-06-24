@@ -1,13 +1,23 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
+
 import 'package:email_validator/email_validator.dart';
-import 'package:image_picker/image_picker.dart';
-import '../auth/auth_service.dart';
+import 'package:flutter/material.dart';
 
 class EditProfileWidget extends StatefulWidget {
   final Function(String, String, String, String) onUpdateProfile;
+  final Map<String, dynamic>? userProfile;
+  final String? profileImageUrl;
+  final bool isLoading;
+  final Function() onImageSelected; // Change to void Function()
 
-  EditProfileWidget({required this.onUpdateProfile});
+  const EditProfileWidget({
+    Key? key,
+    required this.onUpdateProfile,
+    this.profileImageUrl,
+    required this.isLoading,
+    required this.onImageSelected,
+    this.userProfile,
+  }) : super(key: key);
 
   @override
   _EditProfileWidgetState createState() => _EditProfileWidgetState();
@@ -15,100 +25,112 @@ class EditProfileWidget extends StatefulWidget {
 
 class _EditProfileWidgetState extends State<EditProfileWidget> {
   final _formKey = GlobalKey<FormState>();
-  late String fullName;
-  late String email;
-  late String phoneNo;
-  late String password;
   bool _obscurePassword = true;
-  final AuthService _authService = AuthService();
-  File? _image;
-  TextEditingController _fullNameController = TextEditingController();
-  TextEditingController _emailController = TextEditingController();
-  TextEditingController _phoneNoController = TextEditingController();
-  TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneNoController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
-  }
-
-  Future<void> _loadUserProfile() async {
-    var userProfile = await _authService.getCurrentUserProfile();
-    if (userProfile != null) {
-      setState(() {
-        fullName = userProfile['fullName'];
-        email = userProfile['email'];
-        phoneNo = userProfile['phoneNo'];
-        password = '';
-
-        _fullNameController.text = fullName;
-        _emailController.text = email;
-        _phoneNoController.text = phoneNo;
-      });
+    // Check if userProfile exists and then initialize the controllers
+    if (widget.userProfile != null) {
+      _fullNameController.text = widget.userProfile!['fullName'] ?? '';
+      _emailController.text = widget.userProfile!['email'] ?? '';
+      _phoneNoController.text = widget.userProfile!['phoneNo'] ?? '';
     }
   }
 
-Future<void> getImage() async {
-  final picker = ImagePicker();
-  final pickedFile = await picker.getImage(source: ImageSource.gallery);
-  if (pickedFile != null) {
-    setState(() {
-      _image = File(pickedFile.path);
-    });
-  } else {
-    print('No image selected.');
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _phoneNoController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
+    var isSmallScreen = MediaQuery.of(context).size.width < 600;
+    var colorScheme = Theme.of(context).colorScheme;
+
     return ClipRRect(
-      borderRadius: BorderRadius.only(
+      borderRadius: const BorderRadius.only(
         topLeft: Radius.circular(20.0),
         topRight: Radius.circular(20.0),
       ),
       child: SingleChildScrollView(
         child: Container(
           color: Colors.white,
-          padding: EdgeInsets.all(20.0),
+          padding: const EdgeInsets.fromLTRB(20.0, 40.0, 20.0, 20.0), // Added top padding here
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                GestureDetector(
-                  onTap: getImage,
-                  child: Stack(
-                    children: [
-                      Container(
-                        alignment: Alignment.topCenter,
-                        padding: EdgeInsets.all(20.0),
-                        child: CircleAvatar(
-                          radius: 70.0,
-                          backgroundColor: Colors.grey[300],
-                          backgroundImage: _image != null ? FileImage(_image!) : null,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Column(
+                      children: [
+                        Text(
+                          'Edit Profile',
+                          style: TextStyle(
+                            fontSize: 20.0,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
+                        SizedBox(height: 10.0),
+                        Container(
+                          alignment: Alignment.topCenter,
+                          padding: const EdgeInsets.all(20.0),
+                          child: CircleAvatar(
+                            radius: isSmallScreen ? 70 : 90,
+                            backgroundColor: Colors.grey[300],
+                            backgroundImage: widget.profileImageUrl != null
+                                ? NetworkImage(widget.profileImageUrl!)
+                                : null, // Display profile image
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (widget.isLoading) // Show loading indicator
                       Positioned(
-                        bottom: 10.0,
-                        right: 10.0,
+                        bottom: 0,
+                        right: 0,
                         child: Container(
-                          decoration: BoxDecoration(
+                          padding: const EdgeInsets.all(4.0),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
                             shape: BoxShape.circle,
-                            color: Colors.blue,
                           ),
-                          child: IconButton(
-                            icon: Icon(Icons.edit, color: Colors.white),
-                            onPressed: getImage,
+                          child: const CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            strokeWidth: 2.0,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    Positioned(
+                      bottom: 10.0,
+                      right: 10.0,
+                      child: GestureDetector(
+                        onTap: () => widget.onImageSelected(),
+                        child: Container(
+                          padding: const EdgeInsets.all(10.0),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.transparent, // Transparent background
+                          ),
+                          child: const Icon(Icons.edit, color: Colors.black),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 30.0),
                 TextFormField(
                   controller: _fullNameController,
                   decoration: InputDecoration(
@@ -117,9 +139,6 @@ Future<void> getImage() async {
                       borderRadius: BorderRadius.circular(30.0),
                     ),
                   ),
-                  onChanged: (value) {
-                    fullName = value;
-                  },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your full name';
@@ -127,7 +146,7 @@ Future<void> getImage() async {
                     return null;
                   },
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 TextFormField(
                   controller: _emailController,
                   decoration: InputDecoration(
@@ -136,9 +155,6 @@ Future<void> getImage() async {
                       borderRadius: BorderRadius.circular(30.0),
                     ),
                   ),
-                  onChanged: (value) {
-                    email = value;
-                  },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
@@ -148,7 +164,7 @@ Future<void> getImage() async {
                     return null;
                   },
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 TextFormField(
                   controller: _phoneNoController,
                   decoration: InputDecoration(
@@ -157,9 +173,7 @@ Future<void> getImage() async {
                       borderRadius: BorderRadius.circular(30.0),
                     ),
                   ),
-                  onChanged: (value) {
-                    phoneNo = value;
-                  },
+                  keyboardType: TextInputType.phone,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your phone number';
@@ -169,7 +183,7 @@ Future<void> getImage() async {
                     return null;
                   },
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 TextFormField(
                   controller: _passwordController,
                   decoration: InputDecoration(
@@ -178,7 +192,9 @@ Future<void> getImage() async {
                       borderRadius: BorderRadius.circular(30.0),
                     ),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(_obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility),
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;
@@ -186,44 +202,33 @@ Future<void> getImage() async {
                       },
                     ),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      password = value;
-                    });
-                  },
                   obscureText: _obscurePassword,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    } else if (value.length < 6) {
+                    if (value != null && value.isNotEmpty && value.length < 6) {
                       return 'Password must be at least 6 characters long';
                     }
-                    return null;
+                    return null; // Allow empty password for no change
                   },
                 ),
-                SizedBox(height: 20.0),
+                const SizedBox(height: 20.0),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: () {
                     if (_formKey.currentState!.validate()) {
-                      try {
-                        await _authService.updateUserProfile(
-                          fullName,
-                          email,
-                          phoneNo,
-                          password.isEmpty ? null : password,
-                          _image != null ? _image!.path : null,
-                        );
-                        widget.onUpdateProfile(fullName, email, phoneNo, password);
-                        Navigator.of(context).pushNamedAndRemoveUntil('/homepage', (route) => false);
-                      } catch (e) {
-                        print('Error updating profile: $e');
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('Update Successfull'),
-                        ));
-                      }
+                      widget.onUpdateProfile(
+                        _fullNameController.text,
+                        _emailController.text,
+                        _phoneNoController.text,
+                        _passwordController.text,
+                      );
                     }
                   },
-                  child: Text('Update Profile'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                  ),
+                  child: Text(
+                    'Update Profile',
+                    style: TextStyle(color: Colors.white), // Set text color to white
+                  ),
                 ),
               ],
             ),

@@ -1,4 +1,3 @@
-# IEatBread
-IEatBread merupakan sebuah aplikasi mobile yang dikembangkan oleh Kelompok Flutter.io. Aplikasi ini memungkinkan pengguna untuk melakukan pemesanan roti dan kue dengan mudah dan nyaman. Aplikasi ini menawarkan beragam pilihan mulai dari roti hingga kue yang lezat dan berkualitas, yang dapat dipesan dengan beberapa ketukan jari. Pengguna dapat menjelajahi berbagai macam pilihan roti ataupun kue serta promo menarik yang sedang berlangsung, memilih item yang diinginkan, menambahkannya ke keranjang belanja, dan melakukan transaksi pesanan dengan cepat.  
+# Beans and Bubbles
+Beans and Bubbles merupakan aplikasi yang dikembangkan oleh kelompok Devressed. Aplikasi ini memungkinkan pengguna untuk melakukan appointment untuk cuci mobil dan memesan makanan atau minuman. Pengguna diberikan banyak pilihan, mulai dari menu yang beraneka macam hingga harga yang variatif serta diskon menarik untuk cuci mobil. Aplikasi ini sudah terintegrasi 100% dengan backend yang menggunakan firebase.
 
-IEatBread memberikan pengalaman pemesanan roti dan kue yang praktis serta efisien, menjadikannya solusi sempurna untuk bread & cake lovers yang ingin menikmati hidangan berkualitas tanpa repot.

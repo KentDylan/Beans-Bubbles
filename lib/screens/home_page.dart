@@ -1,14 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:Beans_and_Bubbles/screens/menu_list.dart';
+import 'package:BeaBubs/screens/menu_list.dart';
 import '../widgets/wish_list_widget.dart';
 import 'package:provider/provider.dart';
 import '../data/color_provider.dart';
 import 'carwash.dart';
 import 'carwash_dupe.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/car_wash_order.dart'; // Adjust the import path accordingly
+import '../auth/auth_service.dart'; // Adjust the import path accordingly
+import 'car_wash_order_detail_page.dart'; // Adjust the import path accordingly
+import 'package:intl/intl.dart'; // Add this import
 
-class Home extends StatelessWidget {
-  const Home({Key? key});
+class Home extends StatefulWidget {
+  const Home({Key? key}) : super(key: key);
+
+  @override
+  _HomeState createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  List<CarWashOrder> _todayCarWashOrders = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTodayAppointments();
+  }
+
+  Future<void> _fetchTodayAppointments() async {
+    try {
+      String userId = AuthService().getCurrentUserId();
+      String todayDate = DateFormat('MMM dd, yyyy').format(DateTime.now()); // Format today's date
+
+      print("Fetching appointments for user: $userId on date: $todayDate");
+
+      QuerySnapshot snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('carwash_orders')
+          .where('date', isEqualTo: todayDate)
+          .get();
+
+      setState(() {
+        _todayCarWashOrders = snapshot.docs
+            .map((doc) => CarWashOrder.fromMap(doc.data() as Map<String, dynamic>))
+            .toList();
+        _loading = false;
+      });
+
+      print("Fetched ${_todayCarWashOrders.length} appointments for today.");
+      _todayCarWashOrders.forEach((order) {
+        print("Order: ${order.id}, Date: ${order.date}, Time: ${order.time}");
+      });
+    } catch (e) {
+      print('Error fetching today\'s car wash orders: $e');
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,9 +122,9 @@ class Home extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => CarWashPageDupe()),
-                      );
+                          context,
+                          MaterialPageRoute(builder: (context) => CarWashPageDupe()),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
@@ -82,26 +135,26 @@ class Home extends StatelessWidget {
                       child: Text('Clean Your Car', style: TextStyle(color: Colors.white)),
                     ),
                   ),
-                                Container(
-                width: containerWidth,
-                height: containerHeight,
-                margin: EdgeInsets.symmetric(horizontal: 8),
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => MenuList()),
-                  );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                  Container(
+                    width: containerWidth,
+                    height: containerHeight,
+                    margin: EdgeInsets.symmetric(horizontal: 8),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => MenuList()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: Text('Grab Your Order', style: TextStyle(color: Colors.white)),
                     ),
                   ),
-                  child: Text('Grab Your Order', style: TextStyle(color: Colors.white)),
-                ),
-              ),
                 ],
               ),
               SizedBox(height: 10),
@@ -153,38 +206,94 @@ class Home extends StatelessWidget {
                   margin: EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                    image: AssetImage('assets/img/bg_blue1.png'), // Ganti dengan path gambar Anda
-                    fit: BoxFit.cover, // Sesuaikan dengan kebutuhan
-                  ),
+                      image: AssetImage('assets/img/bg_blue1.png'), // Ganti dengan path gambar Anda
+                      fit: BoxFit.cover, // Sesuaikan dengan kebutuhan
+                    ),
                     color: Colors.blue,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'You Don\'t Have Any Appointment',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      SizedBox(height: isSmallScreen ? 5 : 10),
-                      ElevatedButton(
-                        onPressed: () {
-                        Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => CarWashPageDupe()),
-                        );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          primary: Colors.orange,
-                          onPrimary: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                        child: Text('Book Now'),
-                      ),
-                    ],
-                  ),
+                  child: _loading
+                      ? Center(child: CircularProgressIndicator())
+                      : _todayCarWashOrders.isEmpty
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'You Don\'t Have Any Appointment',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                SizedBox(height: isSmallScreen ? 5 : 10),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => CarWashPageDupe()),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    primary: Colors.orange,
+                                    onPrimary: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
+                                  child: Text('Book Now'),
+                                ),
+                              ],
+                            )
+                            :ListView.builder(
+                              itemCount: _todayCarWashOrders.length,
+                              itemBuilder: (context, index) {
+                                CarWashOrder order = _todayCarWashOrders[index];
+                                return ListTile(
+                                  title: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(height: 5),
+                                      Text(
+                                        'Order ID: ${order.id}',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      SizedBox(height: 15), // SizedBox added here
+                                    ],
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Date: ${order.date}',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      Text(
+                                        'Time: ${order.time}',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      Text(
+                                        'Car Type: ${order.carType}',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      Text(
+                                        'Wash Type: ${order.washType}',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      Text(
+                                        'Total Cost: IDR ${order.totalCost}',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CarWashOrderDetailPage(order: order),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+
                 ),
               ),
               SizedBox(height: isSmallScreen ? 15 : 20),
@@ -272,7 +381,6 @@ class Home extends StatelessWidget {
                   ),
                 ),
               ),
-
             ],
           ),
         ),

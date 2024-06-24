@@ -1,3 +1,4 @@
+import 'package:BeaBubs/data/CarWashOrderProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/splash_screen.dart';
@@ -8,6 +9,7 @@ import 'main_page.dart'; // Ganti dengan nama file yang sesuai
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/profile_page.dart'; // Import the ProfilePage class
+import 'screens/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +22,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => CartProvider()),
         ChangeNotifierProvider(create: (context) => WishListProvider()),
         ChangeNotifierProvider(create: (context) => ColorProvider()),
+        ChangeNotifierProvider(create: (context) => CarWashOrderProvider()),
       ],
       child: MyApp(),
     ),
@@ -36,7 +39,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        fontFamily: 'Poppins',
+        fontFamily: 'CircularStd',
         colorScheme: ColorScheme.fromSeed(seedColor: colorProvider.currentColor),
         textTheme: const TextTheme(
           headlineMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
@@ -62,7 +65,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/splash', // Tentukan halaman awal
       routes: {
         '/splash': (context) => SplashScreen(),
-        '/main': (context) => MainPage(),
+        '/main': (context) => LoginApp(),
         // Tambahkan rute untuk halaman lain di sini
       },
     );

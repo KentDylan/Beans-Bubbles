@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/plus_minus_button.dart';
 import '../widgets/subtotal_widget.dart';
 import '../data/cart_provider.dart';
-import '../data/db_helper.dart';
-import '../models/cart_model.dart';
+import '../models/cart_model.dart'; // Assuming Cart model is defined here
 
 class OrderCart extends StatefulWidget {
   const OrderCart({super.key});
@@ -13,17 +14,12 @@ class OrderCart extends StatefulWidget {
   State<OrderCart> createState() => _OrderCartState();
 }
 
-class _OrderCartState extends State<OrderCart>
-    with SingleTickerProviderStateMixin {
-  DBHelper? dbHelper = DBHelper();
-
+class _OrderCartState extends State<OrderCart> {
   @override
   void initState() {
     super.initState();
     context.read<CartProvider>().getData();
   }
-
-  int selectedBottomNavIndex = 3;
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +69,7 @@ class _OrderCartState extends State<OrderCart>
                                   height: 100,
                                   width: 150,
                                   image:
-                                      AssetImage(provider.cart[index].image!),
+                                      AssetImage(provider.cart[index].image),
                                 ),
                                 SizedBox(
                                   child: Column(
@@ -95,26 +91,7 @@ class _OrderCartState extends State<OrderCart>
                                           children: [
                                             TextSpan(
                                               text:
-                                                  '${provider.cart[index].productName!}\n',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      RichText(
-                                        maxLines: 1,
-                                        text: TextSpan(
-                                          text: 'Unit: ',
-                                          style:
-                                              textStyle.headlineSmall!.copyWith(
-                                            color: Colors.blueGrey.shade800,
-                                          ),
-                                          children: [
-                                            TextSpan(
-                                              text:
-                                                  '${provider.cart[index].category!}\n',
+                                                  '${provider.cart[index].name}\n',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -133,7 +110,7 @@ class _OrderCartState extends State<OrderCart>
                                           children: [
                                             TextSpan(
                                               text:
-                                                  '${provider.cart[index].productPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match match) => '${match[1]}.')}\n',
+                                                  '${provider.cart[index].price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match match) => '${match[1]}.')}\n',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -146,45 +123,19 @@ class _OrderCartState extends State<OrderCart>
                                 ),
                                 ValueListenableBuilder<int>(
                                   valueListenable:
-                                      provider.cart[index].quantity!,
+                                      provider.cart[index].quantity,
                                   builder: (context, val, child) {
                                     return PlusMinusButtons(
                                       addQuantity: () {
                                         setState(() {
                                           cart.addQuantity(
-                                              provider.cart[index].id!);
-                                          dbHelper!
-                                              .updateQuantity(Cart(
-                                                  id: index,
-                                                  productId: index.toString(),
-                                                  productName: provider
-                                                      .cart[index].productName,
-                                                  initialPrice: provider
-                                                      .cart[index].initialPrice,
-                                                  productPrice: provider
-                                                      .cart[index].productPrice,
-                                                  quantity: ValueNotifier(
-                                                      provider.cart[index]
-                                                          .quantity!.value),
-                                                  category: provider
-                                                      .cart[index].category,
-                                                  image: provider
-                                                      .cart[index].image))
-                                              .then((value) {
-                                            cart.addTotalPrice(double.parse(
-                                                provider
-                                                    .cart[index].productPrice
-                                                    .toString()));
-                                          });
+                                              provider.cart[index].id);
                                         });
                                       },
                                       deleteQuantity: () {
                                         setState(() {
                                           cart.deleteQuantity(
-                                              provider.cart[index].id!);
-                                          cart.removeTotalPrice(double.parse(
-                                              provider.cart[index].productPrice
-                                                  .toString()));
+                                              provider.cart[index].id);
                                         });
                                       },
                                       text: val.toString(),
@@ -198,10 +149,8 @@ class _OrderCartState extends State<OrderCart>
                                       width: 260,
                                       child: ElevatedButton(
                                         onPressed: () {
-                                          dbHelper!.deleteCartItem(
-                                              provider.cart[index].id!);
                                           provider.removeItem(
-                                              provider.cart[index].id!);
+                                              provider.cart[index].id);
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor:
@@ -243,10 +192,10 @@ class _OrderCartState extends State<OrderCart>
                 if (value.cart.isEmpty) {
                   return Container();
                 } else {
-                  final ValueNotifier<int?> totalPrice = ValueNotifier(null);
+                  final ValueNotifier<double?> totalPrice = ValueNotifier(null);
                   for (var element in value.cart) {
                     totalPrice.value =
-                        (element.productPrice! * element.quantity!.value) +
+                        (element.price * element.quantity.value) +
                             (totalPrice.value ?? 0);
                   }
                   return SubTotalWidget(totalPrice: totalPrice);
@@ -260,9 +209,7 @@ class _OrderCartState extends State<OrderCart>
                   onPressed: () {
                     var cartProvider =
                         Provider.of<CartProvider>(context, listen: false);
-                    cartProvider.addOrder(cartProvider.cart);
-
-                    cartProvider.cart.clear();
+                    cartProvider.addOrder(); // Call addOrder without arguments
 
                     showDialog(
                       context: context,

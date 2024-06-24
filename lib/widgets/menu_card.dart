@@ -1,11 +1,13 @@
+import 'package:BeaBubs/models/cart_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/wishlist_provider.dart';
 import '../models/menu_model.dart';
 import '../screens/menu_details.dart';
 import '../data/cart_provider.dart';
-import '../data/db_helper.dart';
-import '../models/cart_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../firestore/firestore_service.dart';
 
 class MenuCard extends StatefulWidget {
   final String category;
@@ -18,28 +20,50 @@ class MenuCard extends StatefulWidget {
 }
 
 class _MenuCardState extends State<MenuCard> {
-  List<MenuModel> menu = listMenu;
+  late Future<List<MenuModel>> _menuItems;
+
+  @override
+  void initState() {
+    super.initState();
+    _menuItems = FirestoreService().fetchMenuItems();
+  }
 
   @override
   Widget build(BuildContext context) {
     var colorScheme = Theme.of(context).colorScheme;
-    List<MenuModel> filteredMenu = menu.where((item) => item.category == widget.category).toList();
 
     return Scaffold(
-      backgroundColor: Colors.white, // Set background color to white
-      body: ListView.builder(
-        padding: const EdgeInsets.all(10),
-        itemCount: filteredMenu.length,
-        itemBuilder: (context, index) {
-          return Column(
-            children: [
-              ItemCard(item: filteredMenu[index]),
-              Divider(
-                color: Colors.grey.shade300, // Color of the divider
-                thickness: 1, // Thickness of the divider
-              ),
-            ],
-          );
+      backgroundColor: Colors.white,
+      body: FutureBuilder<List<MenuModel>>(
+        future: _menuItems,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return const Center(child: Text('Error loading menu items'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No menu items available'));
+          } else {
+            List<MenuModel> filteredMenu = snapshot.data!
+                .where((item) => item.category == widget.category)
+                .toList();
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(10),
+              itemCount: filteredMenu.length,
+              itemBuilder: (context, index) {
+                return Column(
+                  children: [
+                    ItemCard(item: filteredMenu[index]),
+                    Divider(
+                      color: Colors.grey.shade300,
+                      thickness: 1,
+                    ),
+                  ],
+                );
+              },
+            );
+          }
         },
       ),
     );
@@ -57,7 +81,6 @@ class ItemCard extends StatelessWidget {
     var colorScheme = Theme.of(context).colorScheme;
     final wishListProvider = context.watch<WishListProvider>();
     final cart = Provider.of<CartProvider>(context, listen: false);
-    DBHelper dbHelper = DBHelper();
 
     IconData wishIcon;
     if (wishListProvider.contains(item)) {
@@ -71,28 +94,9 @@ class ItemCard extends StatelessWidget {
         : item.name;
 
     void addToCart() {
-      dbHelper
-          .insertOrUpdate(
-        Cart(
-          id: item.id,
-          productId: item.id.toString(),
-          productName: item.name,
-          initialPrice: item.price,
-          productPrice: item.price,
-          quantity: ValueNotifier<int>(1),
-          category: item.category,
-          image: item.imageUrl,
-        ),
-      )
-          .then((value) {
-        cart.addTotalPrice(item.price.toDouble());
-        cart.addCounter(1);
-        print('Product Added to cart');
-      }).onError((error, stackTrace) {
-        print(error.toString());
-      });
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      cartProvider.addToCart(item, 1); // Pass only the MenuModel and quantity (1 by default)
 
-      // Show the dialog
       showDialog(
         context: context,
         builder: (context) {
@@ -130,7 +134,7 @@ class ItemCard extends StatelessWidget {
                     children: [
                       ElevatedButton(
                         onPressed: () {
-                          Navigator.of(context).pop(); // Dismiss the dialog
+                          Navigator.of(context).pop();
                         },
                         style: ElevatedButton.styleFrom(
                             backgroundColor: colorScheme.primary,
@@ -154,9 +158,9 @@ class ItemCard extends StatelessWidget {
         }));
       },
       child: Card(
-        color: Colors.white, // Set card color to white
+        color: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 0, // Remove shadow
+        elevation: 0,
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Row(

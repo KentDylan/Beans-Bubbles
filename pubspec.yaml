@@ -1,4 +1,4 @@
-name: Beans_and_Bubbles
+name: BeaBubs
 description: A new Flutter project.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -54,7 +54,9 @@ dependencies:
   email_validator: ^2.0.1
   image_picker: ^0.8.4+2  # Sesuaikan versi terbaru dari package ini
   file_picker: ^4.0.0
-
+  firebase_storage: 11.6.0 # Use the latest version
+  cached_network_image: ^3.2.3
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -70,9 +72,9 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icon/logobeansbubble.png"
+  image_path: "assets/icon/logo_tanpa_nama.png"
   adaptive_icon_background: "#FFA500"
-  adaptive_icon_foreground: "assets/icon/logobeansbubble.png"
+  adaptive_icon_foreground: "assets/icon/logo_tanpa_nama.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -111,7 +113,12 @@ flutter:
     - family: Morgenlicht
       fonts:
         - asset: assets/fonts/morgenlicht.ttf
-
+    - family: CircularStd
+      fonts:
+        - asset: assets/fonts/CircularStd-Medium.ttf
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat-Regular.ttf
 
 
   # fonts:

@@ -1,66 +1,42 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 class Cart {
-  late final int? id;
-  final String? productId;
-  final String? productName;
-  final int? initialPrice;
-  final int? productPrice;
-  final ValueNotifier<int>? quantity;
-  final String? category;
-  final String? image;
+  final String id;
+  final int itemId;  // Renamed for consistency
+  final String name;
+  final ValueNotifier<int> quantity;
+  final double price;
+  final String image;
 
-  Cart(
-      {required this.id,
-      required this.productId,
-      required this.productName,
-      required this.initialPrice,
-      required this.productPrice,
-      required this.quantity,
-      required this.category,
-      required this.image});
+  Cart({
+    required this.id,
+    required this.itemId,
+    required this.name,
+    required this.quantity,
+    required this.price,
+    required this.image,
+  });
 
-  Cart.fromMap(Map<dynamic, dynamic> data)
-      : id = data['id'],
-        productId = data['productId'],
-        productName = data['productName'],
-        initialPrice = data['initialPrice'],
-        productPrice = data['productPrice'],
-        quantity = ValueNotifier(data['quantity']),
-        category = data['category'],
-        image = data['image'];
+  factory Cart.fromFirestore(Map<String, dynamic> data, String docId) {
+    return Cart(
+      id: docId,
+      itemId: data['menu_id'],
+      name: data['name'],
+      quantity: ValueNotifier(data['quantity']),
+      price: data['price'],
+      image: data['image'],
+    );
+  }
+
+  double get totalPrice => price * quantity.value; 
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'productId': productId,
-      'productName': productName,
-      'initialPrice': initialPrice,
-      'productPrice': productPrice,
-      'quantity': quantity?.value,
-      'category': category,
-      'image': image,
+      'menu_id': itemId,
+      'name': name,
+      'quantity': quantity.value,
+      'price': price,
+      'image': image,  // Consider using Firebase Storage for images
     };
   }
-
-  Map<String, dynamic> quantityMap() {
-    return {
-      'productId': productId,
-      'quantity': quantity!.value,
-    };
-  }
-}
-
-class Order {
-  final String id;
-  final double amount;
-  final List<Cart> products;
-  final String dateTime; 
-
-  Order({
-    required this.id,
-    required this.amount,
-    required this.products,
-    required this.dateTime, 
-  });
 }

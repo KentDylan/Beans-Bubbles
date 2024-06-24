@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'edited_profile.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
@@ -12,22 +15,39 @@ class _ProfilePageState extends State<ProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late User? currentUser;
+  String? _profileImageUrl; // Store profile image URL
 
   @override
   void initState() {
     super.initState();
     currentUser = _auth.currentUser;
+    _fetchUserData(); // Fetch user data including profile image
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        final userData =
+            await _firestore.collection('users').doc(user.uid).get();
+        setState(() {
+          _profileImageUrl = userData['profileImgUrl']; // Get image URL
+        });
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile'),
+        title: const Text('Profile'),
         backgroundColor: Colors.orange,
         actions: [
           IconButton(
-            icon: Icon(Icons.logout),
+            icon: const Icon(Icons.logout),
             onPressed: () => _signOut(context),
           ),
         ],
@@ -36,7 +56,7 @@ class _ProfilePageState extends State<ProfilePage> {
         future: _firestore.collection('users').doc(currentUser!.uid).get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -44,7 +64,7 @@ class _ProfilePageState extends State<ProfilePage> {
           }
 
           if (!snapshot.hasData || snapshot.data == null) {
-            return Center(child: Text('No data found'));
+            return const Center(child: Text('No data found'));
           }
 
           var userData = snapshot.data!;
@@ -55,31 +75,48 @@ class _ProfilePageState extends State<ProfilePage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Container(
-                alignment: Alignment.topCenter,
-                padding: EdgeInsets.all(20.0),
-                child: CircleAvatar(
-                  radius: 50.0,
-                  // backgroundColor: Colors.grey[300],
-                  backgroundImage: AssetImage('assets/img/profpic.png'), 
+              const SizedBox(height: 40), // Add some spacing above the image
+              Center(
+                // Center the profile image container
+                child: Container(
+                  width: 150, // Adjust size as needed
+                  height: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: _profileImageUrl != null
+                          ? CachedNetworkImageProvider(_profileImageUrl!)
+                          : const AssetImage('assets/img/profpic.png')
+                              as ImageProvider,
+                      fit: BoxFit.cover,
+                    ),
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 3.0, // Thicker border
+                    ),
+                  ),
                 ),
               ),
-              SizedBox(height: 20.0),
-              buildProfileInfo('Email', currentUser!.email ?? 'Email not available'),
-              buildProfileInfo('Full Name', fullName ?? 'Full Name not available'),
-              buildProfileInfo('Phone Number', phoneNumber ?? 'Phone Number not available'),
-              SizedBox(height: 20.0),
+              const SizedBox(height: 40.0), // A
+              buildProfileInfo(
+                  'Email', currentUser!.email ?? 'Email not available'),
+              buildProfileInfo(
+                  'Full Name', fullName ?? 'Full Name not available'),
+              buildProfileInfo(
+                  'Phone Number', phoneNumber ?? 'Phone Number not available'),
+              const SizedBox(height: 20.0),
               ElevatedButton(
                 onPressed: () async {
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => EditedProfilePage()),
+                    MaterialPageRoute(
+                        builder: (context) => const EditedProfilePage()),
                   );
 
                   // Setelah kembali dari EditedProfilePage, perbarui tampilan
                   setState(() {});
                 },
-                child: Text('Update Profile'),
+                child: const Text('Update Profile'),
               ),
             ],
           );
@@ -90,26 +127,26 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget buildProfileInfo(String title, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             '$title:',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18.0,
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
           ),
-          SizedBox(height: 5.0),
+          const SizedBox(height: 5.0),
           Text(
             value,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 20.0,
+            style: const TextStyle(
+              fontFamily: 'Montserrat',
+              fontSize: 15.0,
               fontWeight: FontWeight.w200,
-              color: Color.fromARGB(255, 251, 173, 109),
+              color: Colors.black,
             ),
           ),
         ],
@@ -121,7 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       await _auth.signOut();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Logged out successfully'),
           duration: Duration(seconds: 2),
         ),

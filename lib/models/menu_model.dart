@@ -7,16 +7,17 @@ class MenuModel {
   final String category;
   final String description;
 
-  MenuModel(
-      {required this.id,
-      required this.name,
-      required this.price,
-      required this.imageUrl,
-      required this.isFavorite,
-      required this.category,
-      required this.description});
+  MenuModel({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.imageUrl,
+    required this.isFavorite,
+    required this.category,
+    required this.description,
+  });
 
-  Map toJson() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
@@ -26,6 +27,18 @@ class MenuModel {
       'category': category,
       'description': description,
     };
+  }
+
+  factory MenuModel.fromJson(Map<String, dynamic> json) {
+    return MenuModel(
+      id: json['id'],
+      name: json['name'],
+      price: json['price'],
+      imageUrl: json['imageUrl'],
+      isFavorite: json['isFavorite'],
+      category: json['category'],
+      description: json['description'],
+    );
   }
 }
 

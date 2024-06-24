@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/menu_model.dart';
-import '../data/db_helper.dart';
 import '../data/cart_provider.dart';
 import '../models/cart_model.dart';
 import '../widgets/button.dart';
@@ -16,9 +17,17 @@ class MenuDetails extends StatefulWidget {
 }
 
 class _MenuDetailsState extends State<MenuDetails> {
-  DBHelper dbHelper = DBHelper();
-
   int quantityCount = 1;
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late User? currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    currentUser = _auth.currentUser;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,83 +53,76 @@ class _MenuDetailsState extends State<MenuDetails> {
       });
     }
 
-    void addToCart() {
-      dbHelper
-          .insertOrUpdate(
-        Cart(
-          id: item.id,
-          productId: item.id.toString(),
-          productName: item.name,
-          initialPrice: item.price * quantityCount,
-          productPrice: item.price,
-          quantity: ValueNotifier<int>(quantityCount),
-          category: item.category,
-          image: item.imageUrl,
-        ),
-      )
-          .then((value) {
-        cart.addTotalPrice(item.price.toDouble());
-        cart.addCounter(quantityCount);
-        print('Product Added to cart');
-      }).onError((error, stackTrace) {
-        print(error.toString());
-      });
+    void addToCart() async {
+      final cart = Provider.of<CartProvider>(context,
+          listen: false); // Get CartProvider instance
 
-      // Show the dialog
-      showDialog(
-        context: context,
-        builder: (context) {
-          return Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
+      if (currentUser != null) {
+        try {
+          await cart.addToCart(
+              item, quantityCount); // Call addToCart with correct arguments
+          print('Product Added to cart');
+          // ... rest of the dialog code ...
+        } catch (error) {
+          print(error.toString());
+        }
+
+        // Show the dialog
+        showDialog(
+          context: context,
+          builder: (context) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.0),
               ),
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.check_circle,
-                    color: Colors.green,
-                    size: 60.0,
-                  ),
-                  const SizedBox(height: 16.0),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0),
-                    child: Text(
-                      "Menu successfully added to Order Cart.",
-                      style: textStyle.labelMedium,
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 60.0,
                     ),
-                  ),
-                  const SizedBox(height: 16.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(); // Dismiss the dialog
-                          Navigator.of(context)
-                              .pop(); // Dismiss the MenuDetails screen
-                        },
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: colorScheme.primary,
-                            foregroundColor: Colors.white),
-                        child: const Text("OK"),
+                    const SizedBox(height: 16.0),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: Text(
+                        "Menu successfully added to Order Cart.",
+                        style: textStyle.labelMedium,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 16.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(); // Dismiss the dialog
+                            Navigator.of(context)
+                                .pop(); // Dismiss the MenuDetails screen
+                          },
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: Colors.white),
+                          child: const Text("OK"),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
-      );
+            );
+          },
+        );
+      }
     }
 
     return Scaffold(

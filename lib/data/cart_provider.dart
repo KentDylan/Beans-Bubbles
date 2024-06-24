@@ -1,134 +1,280 @@
-import '../data/db_helper.dart';
-import '../models/cart_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/cart_model.dart';
+import '../models/order_model.dart' as OrderModel;
+import 'package:firebase_auth/firebase_auth.dart';
+import '../models/menu_model.dart';
 
 class CartProvider with ChangeNotifier {
-  DBHelper dbHelper = DBHelper();
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Add authentication
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  List<Cart> _cart = [];
+  List<Cart> get cart => _cart;
+
   int _counter = 0;
-  int _quantity = 1;
   int get counter => _counter;
-  int get quantity => _quantity;
+  double get totalPrice => _cart.fold(
+      0.0, (sum, item) => sum + item.totalPrice); // Calculate on the fly
 
-  double _totalPrice = 0.0;
-  double get totalPrice => _totalPrice;
+  final List<OrderModel.OrderModel> _orders = [];
+  List<OrderModel.OrderModel> get orders => [..._orders];
 
-  List<Cart> cart = [];
+  Future<void> getData() async {
+    // Get the authenticated user's ID
+    User? user = _auth.currentUser;
+    if (user != null) {
+      QuerySnapshot cartSnapshot = await firestore
+          .collection('users')
+          .doc(user.uid) // Use the user's UID
+          .collection('cart')
+          .get();
 
-  Future<List<Cart>> getData() async {
-    cart = await dbHelper.getCartList();
+      List<Cart> newCart = cartSnapshot.docs.map((cartDoc) {
+        Map<String, dynamic> cartData = cartDoc.data() as Map<String, dynamic>;
+        return Cart.fromFirestore(
+            cartData, cartDoc.id); // No need to fetch from menu_items
+      }).toList();
+
+      _cart = newCart;
+      _calculateCounters();
+      notifyListeners();
+    }
+  }
+
+  Future<void> addToCart(MenuModel item, int quantity) async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      try {
+        // Check if the item is already in the cart
+        int existingIndex =
+            _cart.indexWhere((cartItem) => cartItem.itemId == item.id);
+
+        if (existingIndex != -1) {
+          // If item exists, update its quantity
+          _cart[existingIndex].quantity.value += quantity;
+          await firestore
+              .collection('users')
+              .doc(user.uid)
+              .collection('cart')
+              .doc(_cart[existingIndex].id)
+              .update({'quantity': _cart[existingIndex].quantity.value});
+        } else {
+          // If item doesn't exist, add it to the cart
+          DocumentReference cartItemRef = await firestore
+              .collection('users')
+              .doc(user.uid)
+              .collection('cart')
+              .add(Cart(
+                id: '', // Firestore will generate an ID
+                itemId: item.id,
+                name: item.name,
+                quantity: ValueNotifier(quantity),
+                price: item.price.toDouble(),
+                image: item.imageUrl,
+              ).toMap());
+
+          // Update the local cart with the generated ID
+          _cart.add(Cart(
+            id: cartItemRef.id, // Set the ID after adding
+            itemId: item.id,
+            name: item.name,
+            quantity: ValueNotifier(quantity),
+            price: item.price.toDouble(),
+            image: item.imageUrl,
+          ));
+        }
+
+        _calculateCounters();
+        notifyListeners();
+      } catch (error) {
+        // Handle errors (e.g., show a SnackBar or log the error)
+        print('Error adding to cart: $error');
+      }
+    } else {
+      // Handle the case where the user is not authenticated
+      print('User not authenticated. Cannot add to cart.');
+    }
+  }
+
+  // ... (addOrder, clearCart, _setPrefsItems, and _getPrefsItems remain the same)
+
+  void _calculateCounters() {
+    _counter = _cart.fold(0, (sum, item) => sum + item.quantity.value);
+    _setPrefsItems();
     notifyListeners();
-    return cart;
   }
 
-  final List<Order> _orders = [];
-
-  List<Order> get orders {
-    return [..._orders];
+  // ... (The rest of the code - addQuantity, removeItem, and deleteQuantity) are updated to use itemId instead of menuId.
+  void addQuantity(String id) {
+    final index = _cart.indexWhere((element) => element.id == id);
+    _cart[index].quantity.value++;
+    firestore
+        .collection('users')
+        .doc(_auth.currentUser!.uid)
+        .collection('cart')
+        .doc(id)
+        .update({'quantity': _cart[index].quantity.value});
+    _calculateCounters();
+    notifyListeners();
   }
 
-void addOrder(List<Cart> cartProducts) {
-  double total = 0.0;
-  cartProducts.forEach((cartItem) {
-    total += cartItem.productPrice! * cartItem.quantity!.value;
-  });
+  void deleteQuantity(String id) {
+    final index = _cart.indexWhere((element) => element.id == id);
+    if (_cart[index].quantity.value > 1) {
+      _cart[index].quantity.value--;
+      firestore
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .collection('cart')
+          .doc(id)
+          .update({'quantity': _cart[index].quantity.value});
+      _calculateCounters();
+    }
+    notifyListeners();
+  }
 
-  String formattedDateTime = DateFormat('HH:mm').format(DateTime.now());
+  void removeItem(String id) {
+    final index = _cart.indexWhere((element) => element.id == id);
+    if (index != -1) {
+      _counter -= _cart[index].quantity.value;
+      _cart.removeAt(index);
+      firestore
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .collection('cart')
+          .doc(id)
+          .delete();
+      _calculateCounters();
+      notifyListeners();
+    }
+  }
 
-  String id = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  // void _calculateTotalPrice() {
+  //   _totalPrice = _cart.fold(0.0, (sum, item) => sum + item.totalPrice);
+  //   notifyListeners();
+  // }
 
-  _orders.insert(
-    0,
-    Order(
-      id: id,
-      amount: total,
-      dateTime: formattedDateTime, 
-      products: cartProducts,
-    ),
-  );
+  void clearCart() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      try {
+        // Delete all cart items from Firestore
+        QuerySnapshot cartSnapshot = await firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('cart')
+            .get();
 
-  dbHelper.clearCart(); 
-  cart.clear(); 
-  _counter = 0; 
-  _totalPrice = 0.0; 
-  _setPrefsItems();
-  notifyListeners();
-}
+        for (var cartDoc in cartSnapshot.docs) {
+          await cartDoc.reference.delete();
+        }
+
+        _cart.clear();
+        _counter = 0;
+        _setPrefsItems();
+        notifyListeners();
+      } catch (error) {
+        // Handle errors (e.g., show a SnackBar or log the error)
+        print('Error clearing cart: $error');
+      }
+    } else {
+      // Handle the case where the user is not authenticated
+      print('User not authenticated. Cannot clear cart.');
+    }
+  }
 
   void _setPrefsItems() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setInt('cart_items', _counter);
-    prefs.setInt('item_quantity', _quantity);
-    prefs.setDouble('total_price', _totalPrice);
+    // No need to store totalPrice anymore, as it's calculated
     notifyListeners();
   }
 
   void _getPrefsItems() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _counter = prefs.getInt('cart_items') ?? 0;
-    _quantity = prefs.getInt('item_quantity') ?? 1;
-    _totalPrice = prefs.getDouble('total_price') ?? 0;
+    // No need to retrieve totalPrice, as it's calculated
   }
 
-  void addCounter(int sum) {
-    _counter += sum;
-    _setPrefsItems();
-    notifyListeners();
-  }
+  void addOrder() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        final orderData = OrderModel.OrderModel(
+          id: '', // No need for orderId here
+          dateTime: DateTime.now(),
+          items:
+              cart.map((item) => item.toMap()).toList(), // Convert Cart to Map
+        );
 
-  int getCounter() {
-    _getPrefsItems();
-    return _counter;
-  }
+        // Add the order to Firestore (let Firestore generate the ID)
+        await firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('orders')
+            .add(orderData.toMap());
 
-  void addQuantity(int id) {
-    final index = cart.indexWhere((element) => element.id == id);
-    cart[index].quantity!.value = cart[index].quantity!.value + 1;
-    dbHelper.updateQuantity(cart[index]);
-    addTotalPrice(cart[index].productPrice!.toDouble());
-    _counter++;
-    _setPrefsItems();
-    notifyListeners();
-  }
-
-  void deleteQuantity(int id) {
-    final index = cart.indexWhere((element) => element.id == id);
-    final currentQuantity = cart[index].quantity!.value;
-    if (currentQuantity > 1) {
-      cart[index].quantity!.value = currentQuantity - 1;
-      addTotalPrice(cart[index].productPrice!.toDouble());
-      _counter--;
-    }
-    dbHelper.updateQuantity(cart[index]);
-    _setPrefsItems();
-    notifyListeners();
-  }
-
-  void removeItem(int id) {
-    final index = cart.indexWhere((element) => element.id == id);
-    if (index != -1) {
-      final removedItem = cart[index];
-      removeTotalPrice(removedItem.productPrice!.toDouble());
-      _setPrefsItems();
-      _counter -= removedItem.quantity!.value;
-      cart.removeAt(index);
-      dbHelper.deleteCartItem(removedItem.id!);
-      notifyListeners();
+        // Clear the local cart after the order is placed
+        clearCart();
+      } catch (error) {
+        print('Error adding order: $error');
+      }
+    } else {
+      print('User not authenticated. Cannot add order.');
     }
   }
 
-  void addTotalPrice(double productPrice) {
-    _totalPrice = _totalPrice + productPrice;
-    _setPrefsItems();
-    notifyListeners();
+  Future<List<OrderModel.OrderModel>> fetchOrders() async {
+    try {
+      final user = _auth.currentUser;
+      print('User UID: ${user?.uid}'); // Log the user's UID
+
+      if (user != null) {
+        final ordersSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('orders')
+            .orderBy('dateTime', descending: true) // Order by dateTime descending
+            .get();
+
+        print('Orders Snapshot: $ordersSnapshot'); // Log the snapshot
+
+        List<OrderModel.OrderModel> orders = ordersSnapshot.docs
+            .map((doc) => OrderModel.OrderModel.fromFirestore(doc))
+            .toList();
+        return orders;
+      }
+      return []; // If there is no logged-in user
+    } catch (error) {
+      print('Error fetching orders: $error');
+      return [];
+    }
   }
 
-  void removeTotalPrice(double productPrice) {
-    _totalPrice = _totalPrice - productPrice;
-    _setPrefsItems();
-    notifyListeners();
-  }
 
-  void clear() {}
+  Future<void> deleteOrder(OrderModel.OrderModel order) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        // Delete the order from Firestore
+        await firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('orders')
+            .doc(order.id)
+            .delete();
+
+        // Remove the order from the local list
+        _orders.removeWhere((o) => o.id == order.id);
+        notifyListeners();
+      } catch (error) {
+        print('Error deleting order: $error');
+        // TODO: Show a SnackBar with an error message
+      }
+    }
+  }
 }

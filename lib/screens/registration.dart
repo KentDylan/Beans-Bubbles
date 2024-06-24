@@ -1,5 +1,5 @@
-import 'package:Beans_and_Bubbles/widgets/regis_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:BeaBubs/widgets/regis_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/auth_service.dart';
 import 'login_page.dart';
@@ -23,46 +23,47 @@ class RegistrationPage extends StatelessWidget {
           },
         ),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(40, isSmallScreen ? 50 : 70, 0, 0),
-                  child: Text(
-                    'Beans & Bubbles',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isSmallScreen ? 25 : 35,
-                      fontFamily: 'Morgenlicht',
-                    ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(height: isSmallScreen ? 50 : 100), // Space added to move the white box up
+            Padding(
+              padding: EdgeInsets.fromLTRB(40, isSmallScreen ? 50 : 70, 0, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Beans & Bubbles',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isSmallScreen ? 25 : 35,
+                    fontFamily: 'Morgenlicht',
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(40, 0, 0, 0),
-                  child: Text(
-                    'Clean Car, Fresh Brew!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isSmallScreen ? 15 : 18,
-                      fontFamily: 'Morgenlicht',
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          SizedBox(height: 20),
-          // RegistrationWidget berada di bagian bawah
-          RegistrationWidget(
-            onRegister: (fullName, email, phoneNo, password) {
-              _handleRegistration(fullName, email, phoneNo, password, context);
-            },
-          ),
-        ],
+            Padding(
+              padding: EdgeInsets.fromLTRB(40, 0, 0, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Clean Car, Fresh Brew!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isSmallScreen ? 15 : 18,
+                    fontFamily: 'Morgenlicht',
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            RegistrationWidget(
+              onRegister: (fullName, email, phoneNo, password) {
+                _handleRegistration(fullName, email, phoneNo, password, context);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

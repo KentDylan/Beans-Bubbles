@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../models/car_order_model.dart';
+import '../models/car_wash_order.dart';
+import '../auth/auth_service.dart'; // Sesuaikan dengan lokasi AuthService
+
 
 class CarWashWidget extends StatefulWidget {
   const CarWashWidget({Key? key}) : super(key: key);
@@ -21,6 +23,7 @@ class _CarWashWidgetState extends State<CarWashWidget> {
   String? _selectedWash;
   String? _selectedCarType;
   bool _isVoucherValid = true;
+  final AuthService _authService = AuthService();
 
   final int _basePrice = 0;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -53,8 +56,9 @@ class _CarWashWidgetState extends State<CarWashWidget> {
   }
 
   Future<void> _bookCarWash() async {
-    // Hitung total biaya
-    int totalCost = _basePrice +
+    try {
+      // Hitung total biaya seperti sebelumnya
+          int totalCost = _basePrice +
         (_isDateSelected &&
                 (_selectedDay.weekday == DateTime.saturday ||
                     _selectedDay.weekday == DateTime.sunday)
@@ -67,24 +71,30 @@ class _CarWashWidgetState extends State<CarWashWidget> {
       double discount = totalCost * 0.15;
       totalCost -= discount.toInt();
     }
+      // Dapatkan userId dari AuthService
+      String userId = _authService.getCurrentUserId();
 
-    // Buat objek CarWashOrder
-    final newOrder = CarWashOrder(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      date: DateFormat.yMMMd().format(_selectedDay),
-      time: _timeController.text,
-      washType: _selectedWash!,
-      carType: _selectedCarType!,
-      totalCost: totalCost,
-    );
+      // Buat objek CarWashOrder
+      final newOrder = CarWashOrder(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        date: DateFormat.yMMMd().format(_selectedDay),
+        time: _timeController.text,
+        washType: _selectedWash!,
+        carType: _selectedCarType!,
+        totalCost: totalCost,
+      );
 
-    // Simpan ke Firestore
-    await _firestore.collection('carwash_orders').doc(newOrder.id).set(newOrder.toMap());
+      // Simpan ke Firestore dalam collection 'users/$userId/carwash_orders'
+      await _firestore.collection('users').doc(userId).collection('carwash_orders').doc(newOrder.id).set(newOrder.toMap());
 
-    // Berikan notifikasi sukses
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Booking confirmed! Total cost: Rp ${NumberFormat('#,##0', 'id_ID').format(totalCost)}')),
-    );
+      // Berikan notifikasi sukses
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Booking confirmed! Total cost: Rp ${NumberFormat('#,##0', 'id_ID').format(totalCost)}')),
+      );
+    } catch (e) {
+      print('Error booking car wash: $e');
+      // Tangani kesalahan sesuai kebutuhan
+    }
   }
 
   @override
@@ -116,7 +126,7 @@ class _CarWashWidgetState extends State<CarWashWidget> {
         topRight: Radius.circular(20.0),
       ),
       child: Container(
-        height: isSmallScreen ? 470 : 600,
+        height: isSmallScreen ? 500 : 600,
         color: Colors.white,
         padding: padding,
         child: SingleChildScrollView(
@@ -283,7 +293,9 @@ class _CarWashWidgetState extends State<CarWashWidget> {
               SizedBox(height: 20.0),
 
               ElevatedButton(
-                onPressed: _selectedWash != null && _selectedCarType != null && _isDateSelected
+                onPressed: _selectedWash != null &&
+                        _selectedCarType != null &&
+                        _selectedDay != null
                     ? _bookCarWash
                     : null,
                 style: ElevatedButton.styleFrom(
@@ -293,11 +305,13 @@ class _CarWashWidgetState extends State<CarWashWidget> {
                 ),
                 child: Text('Book'),
               ),
-            ],
+              SizedBox(height: 20.0),
+	                    ],
+            ),
           ),
         ),
-      ),
-    );
+      )
+    ;
   }
 
   void _showCalendar(BuildContext context, FormFieldState<String> state) async {

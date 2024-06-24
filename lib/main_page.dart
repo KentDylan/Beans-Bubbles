@@ -1,4 +1,4 @@
-import 'package:Beans_and_Bubbles/auth/auth_page.dart';
+import 'package:BeaBubs/auth/auth_page.dart';
 import 'package:flutter/material.dart';
 import 'screens/menu_list.dart';
 import 'screens/deals.dart';
@@ -8,6 +8,7 @@ import 'screens/home_page.dart';
 import 'screens/login_page.dart';
 import 'screens/carwash.dart';
 import 'screens/profile_page.dart';
+import 'screens/CarWashOrderPage.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -90,7 +91,10 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
             IconButton(
               icon: Icon(Icons.notifications),
               onPressed: () {
-                // Handle notification icon press
+                   Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CarWashOrderPage()),
+    );
               },
             ),
 IconButton(
